@@ -7,8 +7,7 @@ sloppy and unreliable ProTracker (mostly) compatible .mod player, which is writt
 ## Bugs and issues
 * even though the sequence playback clock is on worker thread, the actual audio playback can stutter.
 * volume and pitch slides are bit too fast and very inaccurate, especially the pitch slides, which are not even linear. i'm currently working on fixing that.
-* not all Exy effect are implemented yet
-* honestly, just use libopenmtp...
+* not all `Exy` effect are implemented yet
 ## Example / API
 ```js
 
