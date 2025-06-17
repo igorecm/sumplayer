@@ -138,6 +138,7 @@
       fileToDataURI(file).then(function(t){
         modfile = SUMP.ModFile.fromDataUri(t);
         modplayer.loadSong(modfile);
+        document.getElementById("SUMPseek").max = modplayer.songFile.songlength
         rebuildTable();
       })
     }
@@ -146,7 +147,16 @@
       modplayer = new SUMP.ModPlayer();
       modplayer.loadSong(modfile);
       rebuildTable();
+      document.getElementById("SUMPseek").max = modplayer.songFile.songlength
+      modplayer.onRow = function(){
+        document.getElementById("SUMPplaybackInfo").innerHTML = `${modplayer.currentPosition}:${modplayer.currentRow} `
+        if(modplayer.currentRow == 0 && modplayer.currentPosition == modplayer.songFile.songlength){ 
+          document.getElementById("SUMPseek").value = modplayer.currentPosition 
+        }
+      }
     })
+
+    
     
   </script>
 </body>

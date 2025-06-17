@@ -178,9 +178,9 @@ made by igorecm in 2025
 		}
 	}
 
-	/*****************
-	* PUBLIC CLASSES *
-	*****************/
+	/**********************
+	*       CLASSES       *
+	***********************/
 	
 	class ModFile{
 		constructor(channelAmount = 4, format = "M.K.", name = ""){
@@ -312,9 +312,9 @@ made by igorecm in 2025
 			this.masterPan         = 0.0;
 			this.panSeparation     = 0.2;
 
-			this.currentPosition   = -1;
-			this.currentPattern    = -1;
-			this.currentRow        = -2;
+			this.currentPosition   = 0;
+			this.currentPattern    = 0;
+			this.currentRow        = 0;
 			this.currentAproxTime  = 0;
 
 			this.repeatSong        = true;
@@ -324,7 +324,9 @@ made by igorecm in 2025
 
 			this.masterGain = this.audioCtx.createGain();
 			this.masterGain.connect(this.audioCtx.destination);
-			this.masterGain.gain.value = 0.64
+			this.masterGain.gain.value = 0.64;
+
+			this.onRow = function(){}
 
 			this.resetAudio(true)
 
@@ -339,12 +341,17 @@ made by igorecm in 2025
 
 				if (e.data.type == "row"){
 					//console.log(e.data)
-					if(e.data.row == 0){ document.getElementById("SUMPseek").value = e.data.position }
+
+					t.currentRow = e.data.row
+					t.currentPattern = t.songFile.positions[e.data.position]
+					t.currentPosition = e.data.position
+
+					
 					for (let i = 0; i < t.channelAmount; i++){
 						let p = t.songFile.positions[e.data.position]
 						t.playNote(t.songFile.patterns[p][i][e.data.row], i)
 					}
-					document.getElementById("SUMPplaybackInfo").innerHTML = `${e.data.position}:${e.data.row} `
+					
 					let s = ""
 					//s += "ch..s..not.vol.eff.efv<br>"
 					for (let i = 0; i < t.channelAmount; i++){
@@ -352,6 +359,8 @@ made by igorecm in 2025
 						s += `${i} : ${periodToNote(ch.period)} ${formatn(ch.sample)} ${formatn(ch.volume)} ${formatn(ch.lastEffect,1)} ${formatn(ch.lastEffectValue)}<br>`
 					}
 					document.getElementById("SUMPDEBUG").innerHTML = s
+
+					this.onRow()
 				}
 
 				if (e.data.type == "tick"){
@@ -480,7 +489,7 @@ made by igorecm in 2025
 			this.resetAudio()
 
 			this.songFile = song;
-			document.getElementById("SUMPseek").setAttribute("max", song.songlength-1)
+			
 			this.channelAmount = this.songFile.channelAmount
 			for (let i = 1; i<=31; i++) {
 				let sample = this.songFile.samples[i]
