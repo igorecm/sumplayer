@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="">
+
+<head>
+  <meta charset="utf-8">
+  <title>mod player thingy</title>
+  <style>
+    body{
+      font : 16px courier;
+    }
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
+    }
+    #SUMPbody {
+      width:480px;
+      margin: auto;
+    }
+    #SUMPDEBUG{
+      width:192px;
+      margin: auto;
+    }
+    #SUMPseek {
+      width:320px;
+    }
+    .center{
+      text-align: center;
+    }
+    #main{
+      margin: auto;
+    }
+  </style>
+  
+</head>
+
+<body>
+  <div id="main">
+    <div class="center">
+      <h1>welcume to STUPID and USELESS MODule music PLAYER (SUMP)</h1>
+    </div>
+    
+    <div class="center">
+        <input 
+        id="uploadMod" 
+        accept=".mod" 
+        type="file" 
+        onchange="loadMod(this.files[0])"
+      >
+    </div>
+
+    <br><br>
+    <div id="SUMPbody">
+      <h3 id="songName"></h3>
+      <div id="SUMPDEBUG"></div>
+      <br>
+      <div>
+        <input id="SUMPseek" type="range" min="0" max="1" value="0" onchange="modplayer.setSongPosition(this.value)"></input> 
+        <div id="SUMPplaybackInfo"></div>
+      </div>
+      <br>
+      <div>
+        <button onclick="modplayer.playSong();">PLAY SONG YEEEEAAAH</button>
+        <button onclick="modplayer.pauseSong();">Pause</button>
+        <button onclick="modplayer.resumeSong();">Resume</button>
+        <button onclick="modplayer.stopSong();">Stop</button>
+        
+      </div>
+      <br>
+      <div>
+        volume: <input id="SUMPvolume" type="range" min="0" max="100" value="64" onchange="modplayer.setVolume(this.value/100)"></input> 
+      </div>
+    </div>
+
+    <br><br>
+
+    <div>
+      <table style="margin: auto;" id="sampleTable"></table>
+    </div>
+
+  </div>
+  <script src="samplefile.js"></script>
+  <script src="sumplayer.js"></script>
+
+  <script>
+
+    function fileToDataURI(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+    
+    function rebuildTable(){
+      document.getElementById("songName").innerText = "Song: " + modfile.songname;
+      const sampletable = document.getElementById("sampleTable");
+      sampletable.innerHTML="<tr><th>№</th><th style='min-width:225px'>name</th><th>length</th>" //<th>loop start</th><th>loop length</th><th>finetune</th></tr>"
+      let c=1;
+      
+      modfile.samples.forEach(smp => {
+        let row = document.createElement("tr");
+        let col1 = document.createElement("td");
+        let col2 = document.createElement("td");
+        let col3 = document.createElement("td");
+        let col4 = document.createElement("td");
+        let col5 = document.createElement("td");
+        let col6 = document.createElement("td");
+
+        col1.innerText = c;
+        row.appendChild(col1);
+
+        col2.innerText = smp.name;
+        row.appendChild(col2);
+
+        col3.innerText = smp.length;
+        row.appendChild(col3);
+
+        /*col4.innerText = smp.loopStart;
+        row.appendChild(col4);
+
+        col5.innerText = smp.loopLength;
+        row.appendChild(col5);
+
+        col6.innerText = smp.finetune;
+        row.appendChild(col6);*/
+
+        sampletable.appendChild(row)
+        c+=1;
+      });
+    };
+    
+
+    var modfile = SUMP.ModFile.fromDataUri(testFile);
+    var modplayer;
+    
+    function loadMod(file){
+      fileToDataURI(file).then(function(t){
+        modfile = SUMP.ModFile.fromDataUri(t);
+        modplayer.loadSong(modfile);
+        rebuildTable();
+      })
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      modplayer = new SUMP.ModPlayer();
+      modplayer.loadSong(modfile);
+      rebuildTable();
+    })
+    
+  </script>
+</body>
+
+</html>
