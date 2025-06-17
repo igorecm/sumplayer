@@ -12,22 +12,22 @@ sloppy and unreliable ProTracker (mostly) compatible .mod player, which is writt
 ```js
 
 // one way to load .mod files is trough Data URI strings
-songDataURI = ""data:application/mod;base64,cHguYmxhZHN3ZWRlIHJlbWl4IQBTVC0x...";
+songDataURI = "data:application/mod;base64,cHguYmxhZHN3ZWRlIHJlbWl4IQBTVC0x...";
 
 // initialize and play song
 
 // parse the file
-let modfile = SUMP.ModFile.fromDataUri(songDataURI)
+let modfile = SUMP.ModFile.fromDataUri(songDataURI);
 // player init
 let modplayer = new SUMP.ModPlayer();
 document.addEventListener('DOMContentLoaded', () => {
       modplayer.loadSong(modfile);
-      modplayer.playSong()
+      modplayer.playSong();
 });
 
 // to e.g. update visuals you could define SUMP.ModPlayer.onRow function
 modplayer.onRow = function(){
-  document.getElementById("playbackInfo").innerHTML = `${modplayer.currentPosition}:${modplayer.currentRow} `
+  document.getElementById("playbackInfo").innerHTML = `${modplayer.currentPosition}:${modplayer.currentRow} `;
 }
 ```
 ## License
