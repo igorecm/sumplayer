@@ -2,12 +2,12 @@
 sloppy and unreliable ProTracker (mostly) compatible .mod player, which is written in js and uses Web Audio API. <br>
 avaliable at https://igorecm.github.io/sumplayer/
 ## Featurez:
-* supports ProTraker/NoiseTracker modules and also 4CHN, 6CHN and 8CHN FastTracker .mod modules (not .xm (...yet)).
+* supports ProTraker/NoiseTracker and also 4CHN, 6CHN and 8CHN FastTracker .mod modules (not .xm (...yet)).
 * you can embed this in your projects and maybe even game projects (not tested)
 * .mod parser class and sound utils
 ## Bugs and issues
-* even though the sequence playback clock is on worker thread, the actual audio playback can stutter.
-* volume and pitch slides are bit too fast and very inaccurate, especially the pitch slides, which are not even linear. i'm currently working on fixing that.
+* audio playback stutters quite often.
+* volume and pitch slides are bit too fast.
 * not all `Exy` effects are implemented yet
 ## Example / API
 ```js

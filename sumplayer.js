@@ -157,6 +157,9 @@ made by igorecm in 2025
 		428,404,381,360,339,320,302,285,269,254,240,226,
 		214,202,190,180,170,160,151,143,135,127,120,113
 	];
+
+	
+
 	const vibratoSineTable = [
 		  0,  24,  49,  74,  97, 120, 141, 161,
 		180, 197, 212, 224, 235, 244, 250, 253,
@@ -177,6 +180,15 @@ made by igorecm in 2025
 			return (7159090.5/(period+finetune)/2)
 		}
 	}
+
+	const baseFrequencyPitch = 7093789.2/214/2;
+
+	var periodPlayBackRateTable = [];
+
+	for(let i=856; i>112; i--){
+		periodPlayBackRateTable[i]=(7093789.2/i/2)/baseFrequencyPitch
+	}
+
 
 	/**********************
 	*       CLASSES       *
@@ -365,7 +377,7 @@ made by igorecm in 2025
 
 				if (e.data.type == "tick"){
 					for (let i = 0; i < t.channelAmount; i++){
-						let ch = t.channels[i];
+						const ch = t.channels[i];
 
 						// arpeggio (0xy)
 
@@ -375,23 +387,23 @@ made by igorecm in 2025
 							if (ch.arpeggioTable[3] == 3){ch.arpeggioTable[3] = 0}
 						}
 
-						let val = bitSlicer([ch.lastEffectValue],[4,4]);
+						let val = [ch.lastEffectValue>>4, ch.lastEffectValue-(ch.lastEffectValue>>4<<4)]
 
 						switch(ch.lastEffect){
 							case 10: // volume slide (Axy)
 								if (val[0] == 0 && val[1] != 0){
-									ch.volume = clamp(0, ch.volume - val[1], 64)
+									ch.volume = ch.volume - val[1]
 								} else if(val[1] == 0 && val[0] != 0){
-									ch.volume = clamp(0, ch.volume + val[0], 64)
+									ch.volume = ch.volume + val[0]
 								}
 								break;
 							case 1: // porta up (1xx)
-								ch.period = clamp(113, ch.period - ch.lastEffectValue, 856)
+								ch.period = ch.period - ch.lastEffectValue
 								ch.portaTarget = ch.period
 							break;
 
 							case 2: // porta down (2xx)
-								ch.period = clamp(113, ch.period + ch.lastEffectValue, 856)
+								ch.period = ch.period + ch.lastEffectValue
 								ch.portaTarget = ch.period
 							break;
 							
@@ -418,9 +430,9 @@ made by igorecm in 2025
 								}
 
 								if (val[0] == 0 && val[1] != 0){
-									ch.volume = clamp(0, ch.volume - val[1], 64)
+									ch.volume = ch.volume - val[1]
 								} else if(val[1] == 0 && val[0] != 0){
-									ch.volume = clamp(0, ch.volume + val[0], 64)
+									ch.volume = ch.volume + val[0]
 								}
 								break;
 							case 6: // vibrato + volume slide (6xy)
@@ -430,15 +442,18 @@ made by igorecm in 2025
 								ch.vibratoCounter = (ch.vibratoCounter + ch.vibratoSpeed)%64
 
 								if (val[0] == 0 && val[1] != 0){
-									ch.volume = clamp(0, ch.volume - val[1], 64)
+									ch.volume = ch.volume - val[1]
 								} else if(val[1] == 0 && val[0] != 0){
-									ch.volume = clamp(0, ch.volume + val[0], 64)
+									ch.volume = ch.volume + val[0]
 								}
 								break;
 
 						}
+
+						ch.period = clamp(113, ch.period, 856)
+						ch.volume = clamp(0, ch.volume, 64)
 						if (ch.source){
-							ch.source.playbackRate.value = periodToFrequency(ch.period)/periodToFrequency(214);
+							ch.source.playbackRate.value = periodPlayBackRateTable[ch.period];
 						}
 						ch.gainNode.gain.value = ch.volume/100
 
@@ -491,10 +506,12 @@ made by igorecm in 2025
 			this.songFile = song;
 			
 			this.channelAmount = this.songFile.channelAmount
+			let sinfo = []
+
 			for (let i = 1; i<=31; i++) {
 				let sample = this.songFile.samples[i]
 				if (sample.length != 0){
-					const buffer = this.audioCtx.createBuffer(1, sample.length, periodToFrequency(214)* Math.pow(2,sample.finetune/12/8) );
+					const buffer = this.audioCtx.createBuffer(1, sample.length, baseFrequencyPitch* Math.pow(2,sample.finetune/12/8) );
 					const channelData = buffer.getChannelData(0);
 					const sampleData = new Uint8Array(sample.data);
 
@@ -508,8 +525,16 @@ made by igorecm in 2025
 					buffer.loopEnd = (sample.loopLength + sample.loopStart)/buffer.sampleRate;
 
 					this.sampleBuffers[i] = buffer;
+					sinfo[i]=({volume : sample.volume, rate : buffer.sampleRate});
 				}
 			}
+
+			this.playback.postMessage({
+				type : "songdata",
+				patterndata : this.songFile.patterns,
+				sampleinfo : sinfo,
+				positionsdata : this.songFile.positions
+			});
 		}
 
 		// controls
@@ -571,6 +596,8 @@ made by igorecm in 2025
 
 			const ch = this.channels[channel];
 
+			let effectvalues = [note[3]>>4, note[3]-(note[3]>>4<<4)]
+
 			// set last sample value and set volume
 
 			if (note[1] != 0){
@@ -599,11 +626,17 @@ made by igorecm in 2025
 
 			if (note[2]==0 && note[3]!=0 && ch.period != 0 && ch.period != 113){
 				if (ch.arpeggioTable[0] == 0 || note[3] != ch.lastEffectValue || note[0] != 0){ 
-					if(!periodTable.includes(ch.period)){ch.period = findClosest(periodTable,ch.period)}
-					let s = bitSlicer([note[3]],[4,4])
-					ch.arpeggioTable[0] = ch.period
-					ch.arpeggioTable[1] = periodTable[periodTable.indexOf(ch.period) + s[0]]
-					ch.arpeggioTable[2] = periodTable[periodTable.indexOf(ch.period) + s[1]]
+					let baseNote = findClosestIndex(periodTable,ch.period)
+
+					let s = [Math.min(baseNote + effectvalues[0],35), Math.min(baseNote + effectvalues[1],35)]
+
+					//if(baseNote + s[0] > 35 || baseNote + s[0]){}
+					//if(!periodTable.includes(ch.period)){ch.period = findClosest(periodTable,ch.period)}
+					//let s = [note[3]>>3, note[3]-(note[3]>>4<<4)] //bitSlicer([note[3]],[4,4])
+
+					ch.arpeggioTable[0] = periodTable[baseNote];
+					ch.arpeggioTable[1] = periodTable[s[0]];
+					ch.arpeggioTable[2] = periodTable[s[1]];
 					ch.arpeggioTable[3] = 0
 				}
 			}
@@ -627,9 +660,8 @@ made by igorecm in 2025
 					break;
 				case 4: // set vibrato (4xy)
 					if (note[3]!=0){
-						let s = bitSlicer([note[3]],[4,4])
-						ch.vibratoSpeed = s[0]
-						ch.vibratoDepth = s[1]
+						ch.vibratoSpeed = effectvalues[0]
+						ch.vibratoDepth = effectvalues[1]
 					}
 					break;
 				case 9: // set sample offset (9xx)
@@ -657,19 +689,22 @@ made by igorecm in 2025
 
 			// Exy effects
 			if (note[2]==14){
-				let val = bitSlicer([note[3]],[4,4]);
-				switch(val[0]){
+				switch(effectvalues[0]){
 					case 10: //fine volume up (EAy)
-						ch.volume = clamp(0, ch.volume + val[1], 64)
+						ch.volume = ch.volume + effectvalues[1]
 						break;
 					case 11: //fine volume down (EBy)
-						ch.volume = clamp(0, ch.volume - val[1], 64)
+						ch.volume = ch.volume - effectvalues[1]
 						break;
 				}
 			}
 
+			ch.period = clamp(113, ch.period, 856)
+			ch.volume = clamp(0, ch.volume, 64)
+			if (ch.source){
+				ch.source.playbackRate.value = periodPlayBackRateTable[ch.period];
+			}
 			ch.gainNode.gain.value = ch.volume/100
-			if (ch.source){ch.source.playbackRate.value = periodToFrequency(ch.period)/periodToFrequency(214);}
 			
 
 			// set last values

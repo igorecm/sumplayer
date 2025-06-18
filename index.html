@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>mod player thingy</title>
   <style>
     body{
@@ -149,7 +150,7 @@
       rebuildTable();
       document.getElementById("SUMPseek").max = modplayer.songFile.songlength
       modplayer.onRow = function(){
-        document.getElementById("SUMPplaybackInfo").innerHTML = `${modplayer.currentPosition}:${modplayer.currentRow} `
+        document.getElementById("SUMPplaybackInfo").innerText = `${modplayer.currentPosition}:${modplayer.currentRow} `
         if(modplayer.currentRow == 0 || modplayer.currentPosition == modplayer.songFile.songlength){ 
           document.getElementById("SUMPseek").value = modplayer.currentPosition 
         }
