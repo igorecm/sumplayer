@@ -52,7 +52,7 @@
     <br><br>
     <div id="SUMPbody">
       <h3 id="songName"></h3>
-      <div id="SUMPDEBUG"></div>
+      <div id="SUMPDEBUG" hidden></div>
       <br>
       <div>
         <input id="SUMPseek" type="range" min="0" max="1" value="0" onchange="modplayer.setSongPosition(this.value)"></input> 
@@ -68,7 +68,8 @@
       </div>
       <br>
       <div>
-        volume: <input id="SUMPvolume" type="range" min="0" max="100" value="64" onchange="modplayer.setVolume(this.value/100)"></input> 
+        volume: <input id="SUMPvolume" type="range" min="0" max="100" value="64" onchange="modplayer.setVolume(this.value/100)"></input><br>
+        show debug info:  <input id="SUMPvolume" type="checkbox"  onchange="document.getElementById('SUMPDEBUG').hidden = !this.checked"></input>
       </div>
     </div>
 
@@ -151,9 +152,11 @@
       document.getElementById("SUMPseek").max = modplayer.songFile.songlength
       modplayer.onRow = function(){
         document.getElementById("SUMPplaybackInfo").innerText = `${modplayer.currentPosition}:${modplayer.currentRow} `
+        document.getElementById("SUMPDEBUG").innerHTML = modplayer.debugOutput
         if(modplayer.currentRow == 0 || modplayer.currentPosition == modplayer.songFile.songlength){ 
           document.getElementById("SUMPseek").value = modplayer.currentPosition 
         }
+
       }
     })
 
