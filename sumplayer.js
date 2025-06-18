@@ -352,6 +352,7 @@ made by igorecm in 2025
 			}
 
 			this.playback.onmessage = (e) => {
+				
 				if (e.data.type == "update"){
 					let s =""
 					for (let i = 0; i < t.channelAmount; i++){
@@ -370,6 +371,8 @@ made by igorecm in 2025
 
 						s += `${i} : ${periodToNote(nch.period)} ${formatn(nch.sample)} ${formatn(nch.volume)} ${formatn(nch.lastEffect,1)} ${formatn(nch.lastEffectValue)}<br>`
 					}
+
+					
 					t.debugOutput = s;
 					t.currentRow = e.data.row
 					t.currentPattern = t.songFile.positions[e.data.position]
@@ -379,32 +382,6 @@ made by igorecm in 2025
 						t.onRow();
 					}
 				}
-
-				/*
-				if (e.data.type == "row"){
-					//console.log(e.data)
-
-					t.currentRow = e.data.row
-					t.currentPattern = t.songFile.positions[e.data.position]
-					t.currentPosition = e.data.position
-
-					
-					for (let i = 0; i < t.channelAmount; i++){
-						let p = t.songFile.positions[e.data.position]
-						t.playNote(t.songFile.patterns[p][i][e.data.row], i)
-					}
-					
-					let s = ""
-					//s += "ch..s..not.vol.eff.efv<br>"
-					for (let i = 0; i < t.channelAmount; i++){
-						let ch = t.channels[i];
-						s += `${i} : ${periodToNote(ch.period)} ${formatn(ch.sample)} ${formatn(ch.volume)} ${formatn(ch.lastEffect,1)} ${formatn(ch.lastEffectValue)}<br>`
-					}
-					document.getElementById("SUMPDEBUG").innerHTML = s
-
-					this.onRow()
-				}
-				*/
 
 			}
 		}

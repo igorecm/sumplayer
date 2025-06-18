@@ -62,6 +62,10 @@ let currentPosition   = 0;
 let currentRow        = 0;
 let songLength        = 1;
 let songRepeat        = true;
+let patternDelay      = 0;
+
+let breakToRow     = -1;
+let jumpToPosition = -1;
 
 let rowCallback      = function(){}
 let afterRowCallback = function(){}
@@ -72,6 +76,7 @@ function resetAudio(){
         channels[i] = {
             playSample : false,
             playSampleOffset : 0,
+            playSampleStartOffset : 0,
             lastEffect: 0,
             lastEffectValue: 0,
             sample: 0,
@@ -113,19 +118,16 @@ function perRowPlayback(){
         const note = patternData[p][i][currentRow]
         const ch = channels[i]
 
-        let effectvalues = [note[3]>>4, note[3]-(note[3]>>4<<4)]
+        let effectvalue = [note[3]>>4, note[3] & 0xf]
 
         // set last sample value and set volume
-
         if (note[1] != 0){
             ch.sample = note[1]
             ch.playSampleOffset = 0
             ch.volume = sampleInfo[ch.sample].volume
         }
 
-        
         // play note
-
         if (note[0] != 0 && ch.sample != 0){
 
             // set portamento slide target
@@ -140,25 +142,6 @@ function perRowPlayback(){
             }
         }
 
-        // create arpeggio table
-
-        if (note[2]==0 && note[3]!=0 && ch.period != 0 && ch.period != 113){
-            if (ch.arpeggioTable[0] == 0 || note[3] != ch.lastEffectValue || note[0] != 0){ 
-                let baseNote = findClosestIndex(periodTable,ch.period)
-
-                let s = [Math.min(baseNote + effectvalues[0],35), Math.min(baseNote + effectvalues[1],35)]
-
-                //if(baseNote + s[0] > 35 || baseNote + s[0]){}
-                //if(!periodTable.includes(ch.period)){ch.period = findClosest(periodTable,ch.period)}
-                //let s = [note[3]>>3, note[3]-(note[3]>>4<<4)] //bitSlicer([note[3]],[4,4])
-
-                ch.arpeggioTable[0] = periodTable[baseNote];
-                ch.arpeggioTable[1] = periodTable[s[0]];
-                ch.arpeggioTable[2] = periodTable[s[1]];
-                ch.arpeggioTable[3] = 0
-            }
-        }
-
         // reset vibrato
         if (note[2] != ch.lastEffect && ch.lastEffect == 4){
             ch.period = ch.portaTarget
@@ -168,39 +151,54 @@ function perRowPlayback(){
             ch.period = ch.portaTarget
         }
 
+        // create arpeggio table
+
+        if (note[2]==0 && note[3]!=0 && ch.period != 0 && ch.period != 113){
+            if (ch.arpeggioTable[0] == 0 || note[3] != ch.lastEffectValue || note[0] != 0){ 
+                ch.period = ch.portaTarget
+                let baseNote = findClosestIndex(periodTable,ch.period)
+
+                let s = [Math.min(baseNote + effectvalue[0],35), Math.min(baseNote + effectvalue[1],35)]
+
+                ch.arpeggioTable[0] = periodTable[baseNote];
+                ch.arpeggioTable[1] = periodTable[s[0]];
+                ch.arpeggioTable[2] = periodTable[s[1]];
+                ch.arpeggioTable[3] = 0
+            }
+        }
+
+        
+
         // handle effects
 
         switch(note[2]){
-            case 3: // set portamento slide speed (3xx)
+            case 0x3: // set portamento slide speed (3xx)
                 if (note[3]!=0){
                     ch.portaSpeed = note[3]
                 }
                 break;
-            case 4: // set vibrato (4xy)
+            case 0x4: // set vibrato (4xy)
                 if (note[3]!=0){
-                    ch.vibratoSpeed = effectvalues[0]
-                    ch.vibratoDepth = effectvalues[1]
+                    ch.vibratoSpeed = effectvalue[0]
+                    ch.vibratoDepth = effectvalue[1]
                 }
                 break;
-            case 9: // set sample offset (9xx)
+            case 0x9: // set sample offset (9xx)
                 ch.playSample = true
                 ch.playSampleOffset = note[3]*256
                 break;
-            case 11:  // jump to pos (Bxx)
-                //this.playback.postMessage({command : "setpos", value : note[3]})
+            case 0xB:  // jump to pos (Bxx)
+                jumpToPosition = note[3]
                 break;
-            case 12: // set volume effect (Cxx)
+            case 0xC: // set volume effect (Cxx)
                 if (ch.sample != 0){
                     ch.volume = note[3]
                 }
                 break;
-            case 13: // break to row (Dxx)
-                afterRowCallback = function(){
-                    currentPosition++;
-                    currentRow = note[3]
-                }
+            case 0xD: // break to row (Dxx)
+                breakToRow = clamp(0, note[3], 63);
                 break;
-            case 15: // set speed/bpm (Fxx)
+            case 0xF: // set speed/bpm (Fxx)
                 if (note[3] < 32){
                     setSpeed(note[3])
                 } else{
@@ -210,13 +208,25 @@ function perRowPlayback(){
         }
 
         // Exy effects
-        if (note[2]==14){
-            switch(effectvalues[0]){
-                case 10: //fine volume up (EAy)
-                    ch.volume = ch.volume + effectvalues[1]
+        if (note[2]==0xE){
+            switch(effectvalue[0]){
+                case 0x1: //fine porta up (E1x)
+                    ch.period -= effectvalue[1]
                     break;
-                case 11: //fine volume down (EBy)
-                    ch.volume = ch.volume - effectvalues[1]
+                case 0x2: //fine porta down (E2x)
+                    ch.period += effectvalue[1]
+                    break;
+                case 0xA: //fine volume up (EAx)
+                    ch.volume = ch.volume + effectvalue[1]
+                    break;
+                case 0xB: //fine volume down (EBx)
+                    ch.volume = ch.volume - effectvalue[1]
+                    break;
+                case 0xD: // note delay (EDx)
+                    ch.playSampleStartOffset = effectvalue[1]
+                    break;
+                case 0xE: // pattern delay (EEx)
+                    patternDelay = effectvalue[1];
                     break;
             }
         }
@@ -231,7 +241,7 @@ function perTickPlayback(){
     for (let i = 0; i < channelAmount; i++){
 		const ch = channels[i];
 
-        let val = [ch.lastEffectValue>>4, ch.lastEffectValue-(ch.lastEffectValue>>4<<4)]
+        let val = [ch.lastEffectValue>>4, ch.lastEffectValue & 0xf]
 
         // arpeggio (0xy)
         if (ch.lastEffect == 0 && ch.lastEffectValue != 0 && ch.period != 0 && ch.period != 113){
@@ -241,24 +251,24 @@ function perTickPlayback(){
         }
 
         switch(ch.lastEffect){
-            case 10: // volume slide (Axy)
+            case 0xA: // volume slide (Axy)
                 if (val[0] == 0 && val[1] != 0){
                     ch.volume = ch.volume - val[1]
                 } else if(val[1] == 0 && val[0] != 0){
                     ch.volume = ch.volume + val[0]
                 }
                 break;
-            case 1: // porta up (1xx)
+            case 0x1: // porta up (1xx)
                 ch.period = ch.period - ch.lastEffectValue
                 ch.portaTarget = ch.period
             break;
 
-            case 2: // porta down (2xx)
+            case 0x2: // porta down (2xx)
                 ch.period = ch.period + ch.lastEffectValue
                 ch.portaTarget = ch.period
             break;
             
-            case 3: // porta slide (3xx)
+            case 0x3: // porta slide (3xx)
                 if (ch.period < ch.portaTarget){
                     ch.period = clamp(113, ch.period + ch.portaSpeed, ch.portaTarget)
                 } else if (ch.period > ch.portaTarget){
@@ -266,14 +276,14 @@ function perTickPlayback(){
                 }
                 break;
                 
-            case 4: // vibrato (4xy)
+            case 0x4: // vibrato (4xy)
                 ch.period = ch.portaTarget + (((ch.vibratoCounter < 32) 
                                                 ? vibratoSineTable[ch.vibratoCounter] 
                                                 : -vibratoSineTable[ch.vibratoCounter - 32] * ch.vibratoDepth) >> 7);
                 ch.vibratoCounter = (ch.vibratoCounter + ch.vibratoSpeed)%64
                 break;
             
-            case 5: // porta + volume slide (5xy)
+            case 0x5: // porta + volume slide (5xy)
                 if (ch.period < ch.portaTarget){
                     ch.period = clamp(113, ch.period + ch.portaSpeed, ch.portaTarget)
                 } else if (ch.period > ch.portaTarget){
@@ -286,7 +296,7 @@ function perTickPlayback(){
                     ch.volume = ch.volume + val[0]
                 }
                 break;
-            case 6: // vibrato + volume slide (6xy)
+            case 0x6: // vibrato + volume slide (6xy)
                 ch.period = ch.portaTarget + (((ch.vibratoCounter < 32) 
                                                 ? vibratoSineTable[ch.vibratoCounter] 
                                                 : -vibratoSineTable[ch.vibratoCounter - 32] * ch.vibratoDepth) >> 7);
@@ -299,6 +309,20 @@ function perTickPlayback(){
                 }
                 break;
 
+        }
+
+        if (ch.lastEffect==0xE){
+            switch(val[0]){
+                case 0xC: // note cut (ECx)
+                    if (currentTick == val[1]){
+                        ch.volume = 0
+                    }
+                    break;
+                case 0x9: // note retrigger (E9x)
+                    if (currentTick % val[1] == 0){
+                        ch.playSample = true
+                    }
+            }
         }
 
         ch.period = clamp(113, ch.period, 856)
@@ -312,16 +336,14 @@ function processTick(){
     //
     if (!isPlaying) return;
 
-    if (currentTick == 0){
-        //postMessage({type : "row", row : currentRow, position : currentPosition, speed : ticksPerRow})
+    if (currentTick == 0 && patternDelay == 0){
         perRowPlayback()
-
+        
         rowCallback()
         rowCallback = function(){}
     }
 
     perTickPlayback()
-    //postMessage({type : "tick", tick : totalTicks})
 
     postMessage({
         type : "update", 
@@ -339,12 +361,35 @@ function processTick(){
 
     if (currentTick >= ticksPerRow) {
         currentTick = 0;
-        currentRow++;
+
+        if (breakToRow != -1){
+            currentRow = breakToRow;
+            currentPosition++;  
+        }
+        if (jumpToPosition != -1){
+            currentRow = (breakToRow!=-1) ? breakToRow : 0;
+            currentPosition = jumpToPosition;
+        }
         
-        if (currentRow >= 64) {
+        //console.log(breakToRow,jumpToPosition,currentRow,currentPosition)
+
+        if (patternDelay > 0){
+            patternDelay--;
+        }
+
+        if (patternDelay == 0 && breakToRow == -1){
+            currentRow++;
+        }
+
+        if (currentRow >= 64 && breakToRow == -1 && jumpToPosition == -1) {
             currentRow = 0;
             currentPosition++;
         }
+
+        //console.log(breakToRow,jumpToPosition,currentRow,currentPosition)
+
+        breakToRow = -1;
+        jumpToPosition = -1;
 
         afterRowCallback()
         afterRowCallback = function(){}
@@ -434,7 +479,7 @@ self.onmessage = (e) => {
             
             if (isPlaying || isPaused){
                 currentTick       = 0;
-                currentPosition   = e.data.value;
+                currentPosition   = parseInt(e.data.value);
                 currentRow        = 0;
             }
             break;
