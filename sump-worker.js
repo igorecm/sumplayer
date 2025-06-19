@@ -36,8 +36,6 @@ const vibratoSineTable = [
     180, 161, 141, 120,  97,  74,  49,  24
 ];
 
-
-
 ///////////////MAIN STUFF///////////////
 
 let patternData = []
@@ -99,7 +97,7 @@ function setSpeed(tpr = 6){
     ticksPerRow = tpr;
 }
 function setBPM(BPM = 125){
-    tickDurationMs = 2500/BPM|0;
+    tickDurationMs = Math.round(2500/BPM);
 }
 function resetPlayback(){
     ticksPerRow = 6;
@@ -112,6 +110,30 @@ function resetPlayback(){
 
 //////////////////////////////
 
+function setSample(ch,note){
+    // set last sample value and set volume
+    if (note[1] != 0 && sampleInfo[note[1]] != undefined){
+        ch.sample = note[1]
+        ch.playSampleOffset = 0
+        ch.volume = sampleInfo[ch.sample].volume
+    }
+
+    // play note
+    if (note[0] != 0 && ch.sample != 0){
+
+        // set portamento slide target
+
+        ch.portaTarget = note[0]
+
+        if(note[2] != 3 && note[2] != 5 ){
+            ch.period = note[0]
+            ch.vibratoCounter = 0
+            ch.playSample = true;
+            
+        }
+    }
+}
+
 function perRowPlayback(){
     for (let i = 0; i < channelAmount; i++){
         let p = positionsData[currentPosition]
@@ -120,27 +142,10 @@ function perRowPlayback(){
 
         let effectvalue = [note[3]>>4, note[3] & 0xf]
 
-        // set last sample value and set volume
-        if (note[1] != 0){
-            ch.sample = note[1]
-            ch.playSampleOffset = 0
-            ch.volume = sampleInfo[ch.sample].volume
+        if ( !(note[2] == 0xE && effectvalue[0] == 0xD) ){
+            setSample(ch,note)
         }
 
-        // play note
-        if (note[0] != 0 && ch.sample != 0){
-
-            // set portamento slide target
-
-            ch.portaTarget = note[0]
-
-            if(note[2] != 3 && note[2] != 5 ){
-                ch.period = note[0]
-                ch.vibratoCounter = 0
-                ch.playSample = true;
-                
-            }
-        }
 
         // reset vibrato
         if (note[2] != ch.lastEffect && ch.lastEffect == 4){
@@ -239,6 +244,8 @@ function perRowPlayback(){
 
 function perTickPlayback(){
     for (let i = 0; i < channelAmount; i++){
+        let p = positionsData[currentPosition]
+        const note = patternData[p][i][currentRow]
 		const ch = channels[i];
 
         let val = [ch.lastEffectValue>>4, ch.lastEffectValue & 0xf]
@@ -316,6 +323,12 @@ function perTickPlayback(){
                 case 0xC: // note cut (ECx)
                     if (currentTick == val[1]){
                         ch.volume = 0
+                    }
+                    break;
+                case 0xD:
+                    if (currentTick == ch.playSampleStartOffset){
+                        setSample(ch,note)
+                        ch.playSampleStartOffset = 0
                     }
                     break;
                 case 0x9: // note retrigger (E9x)

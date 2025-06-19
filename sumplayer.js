@@ -225,6 +225,7 @@ made by igorecm in 2025
 			const supportedFormats=[
 				"IGOR",
 				"M.K.",
+				"M!K!",
 				"4CHN",
 				"6CHN",
 				"8CHN"
@@ -322,7 +323,7 @@ made by igorecm in 2025
 
 			this.masterVolume      = 1.0;
 			this.masterPan         = 0.0;
-			this.panSeparation     = 0.2;
+			this.panSeparation     = 0.25;
 
 			this.currentPosition   = 0;
 			this.currentPattern    = 0;
@@ -337,6 +338,9 @@ made by igorecm in 2025
 			this.masterGain = this.audioCtx.createGain();
 			this.masterGain.connect(this.audioCtx.destination);
 			this.masterGain.gain.value = 0.64;
+
+			this.masterPan = this.audioCtx.createPanner();
+			this.masterPan.connect(this.audioCtx.destination);
 
 			this.debugOutput = ""
 
@@ -401,11 +405,17 @@ made by igorecm in 2025
 				//let ch = this.channels[i]
 
 				let gainNode = this.audioCtx.createGain();
-				gainNode.connect(this.masterGain);
+				let panNode = this.audioCtx.createStereoPanner();
+
+				panNode.pan.value = this.panSeparation * ((i%2)*2-1)
+				gainNode.connect(panNode);
+				panNode.connect(this.masterGain);
+				
 
 				this.channels[i] = {
 					source: null,
 					gainNode: gainNode,
+					panNode : panNode
 				};
 			}
 
@@ -413,7 +423,6 @@ made by igorecm in 2025
 		
 		loadSong(song){
 			this.stopSong()
-			this.resetAudio()
 
 			this.songFile = song;
 			
@@ -440,6 +449,9 @@ made by igorecm in 2025
 					sinfo[i]=({volume : sample.volume, rate : buffer.sampleRate});
 				}
 			}
+
+			this.stopAudio()
+			this.resetAudio()
 
 			this.playback.postMessage({
 				type : "songdata",
@@ -493,7 +505,7 @@ made by igorecm in 2025
 			ch.source.buffer = sampleBuffer;
 			ch.source.connect(ch.gainNode);
 
-			ch.source.playbackRate.value = periodToFrequency(period)/periodToFrequency(214);
+			ch.source.playbackRate.value = periodPlayBackRateTable[period];
 
 			ch.gainNode.gain.value = volume;
 
