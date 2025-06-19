@@ -81,7 +81,7 @@
 
   </div>
   <script src="samplefile.js"></script>
-  <script src="sumplayer.js"></script>
+  <script src="sump.js"></script>
 
   <script>
 
@@ -134,7 +134,7 @@
     
 
     var modfile = SUMP.ModFile.fromDataUri(testFile);
-    var modplayer;
+    var modplayer = new SUMP.ModPlayer();;
     
     function loadMod(file){
       fileToDataURI(file).then(function(t){
@@ -144,20 +144,22 @@
         rebuildTable();
       })
     }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      modplayer = new SUMP.ModPlayer();
+    modplayer.init().then(() => {
+       
       modplayer.loadSong(modfile);
+
       rebuildTable();
+
       document.getElementById("SUMPseek").max = modplayer.songFile.songlength
-      modplayer.onRow = function(){
+
+      /*modplayer.onRow = function(){
         document.getElementById("SUMPplaybackInfo").innerText = `${modplayer.currentPosition}:${modplayer.currentRow} `
         document.getElementById("SUMPDEBUG").innerHTML = modplayer.debugOutput
         if(modplayer.currentRow == 0 || modplayer.currentPosition == modplayer.songFile.songlength){ 
           document.getElementById("SUMPseek").value = modplayer.currentPosition 
         }
 
-      }
+      }*/
     })
 
     

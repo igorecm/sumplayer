@@ -362,7 +362,7 @@ made by igorecm in 2025
 					for (let i = 0; i < t.channelAmount; i++){
 						const ch = t.channels[i];
 						const nch = e.data.ch[i];
-
+						
 						if (nch.playSample){
 							t.playSample(i, nch.sample, nch.period, nch.volume, nch.playSampleOffset)
 						}

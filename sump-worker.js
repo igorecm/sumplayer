@@ -436,24 +436,6 @@ self.onmessage = (e) => {
     }
 
     switch (e.data.command) {
-        case "breakrow":
-            afterRowCallback = function(){
-                currentPosition++;
-                currentRow = e.data.value
-            }
-            break;
-        case "changespeed":
-            setSpeed(e.data.value);
-            break;
-        case "changebpm":
-            setBPM(e.data.value);
-            break;
-		case "setpos":
-			afterRowCallback = function(){
-				currentTick       = 0;
-				currentPosition   = e.data.value;
-			}
-            break;
         
         case "play":
             resetPlayback()
