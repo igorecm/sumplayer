@@ -14,7 +14,8 @@
       border-collapse: collapse;
     }
     #SUMPbody {
-      width:480px;
+      
+      width:320px;
       margin: auto;
     }
     #SUMPDEBUG{
@@ -37,22 +38,30 @@
 <body>
   <div id="main">
     <div class="center">
-      <h1>welcume to STUPID and USELESS MODule music PLAYER (SUMP)</h1>
+      <h1 id="SUMPheader">welcome to (not so) STUPID and USELESS MODule music PLAYER (SUMP)</h1>
     </div>
     
-    <div class="center">
-        <input 
-        id="uploadMod" 
-        accept=".mod" 
-        type="file" 
-        onchange="loadMod(this.files[0])"
-      >
+    
+    <div class='center'>
+      <button id="startaudio" onclick="modplayer.init().then(initialization)">START WEBAUDIO</button>
     </div>
+    <div id="SUMPbody" hidden>
+      <div >
+          <input 
+          id="uploadMod" 
+          accept=".mod" 
+          type="file" 
+          onchange="loadMod(this.files[0])"
+        >
+      </div>
 
-    <br><br>
-    <div id="SUMPbody">
+      <br><br>
+
       <h3 id="songName"></h3>
       <div id="SUMPDEBUG" hidden></div>
+      <div id="SUMPvis" hidden>
+        <canvas id="sumpcanvas" width="320" height="160">
+      </div>
       <br>
       <div>
         <input id="SUMPseek" type="range" min="0" max="1" value="0" onchange="modplayer.setSongPosition(this.value)"></input> 
@@ -60,16 +69,18 @@
       </div>
       <br>
       <div>
-        <button onclick="modplayer.playSong();">PLAY SONG YEEEEAAAH</button>
-        <button onclick="modplayer.pauseSong();">Pause</button>
+        <button onclick="modplayer.playSong();">  PLAY</button>
+        <button onclick="modplayer.pauseSong();"> Pause</button>
         <button onclick="modplayer.resumeSong();">Resume</button>
-        <button onclick="modplayer.stopSong();">Stop</button>
+        <button onclick="modplayer.stopSong();">  Stop</button>
         
       </div>
       <br>
       <div>
-        volume: <input id="SUMPvolume" type="range" min="0" max="100" value="64" onchange="modplayer.setVolume(this.value/100)"></input><br>
-        show channels info:  <input id="SUMPvolume" type="checkbox"  onchange="document.getElementById('SUMPDEBUG').hidden = !this.checked"></input>
+        volume.: <input id="SUMPvolume" type="range" min="0" max="100" value="100" onchange="modplayer.setVolume(this.value/100)"></input><br>
+        pan.sep: <input id="SUMPpansep" type="range" min="0" max="100" value="50" onchange="modplayer.setParam('masterPanSeparation', this.value/100)"></input><br>
+        resampling:  <input id="SUMPresample" type="checkbox" checked onchange="modplayer.setParam('masterResampling', this.checked)"></input><br>
+        visualizer:  <input id="SUMPvolume" type="checkbox"  onchange="document.getElementById('SUMPvis').hidden = !this.checked"></input><br>
       </div>
     </div>
 
@@ -144,7 +155,11 @@
         rebuildTable();
       })
     }
-    modplayer.init().then(() => {
+
+    
+    
+
+    const initialization = () => {
        
       modplayer.loadSong(modfile);
 
@@ -152,15 +167,32 @@
 
       document.getElementById("SUMPseek").max = modplayer.songFile.songlength
 
-      /*modplayer.onRow = function(){
-        document.getElementById("SUMPplaybackInfo").innerText = `${modplayer.currentPosition}:${modplayer.currentRow} `
+      document.getElementById("SUMPbody").hidden = false
+      document.getElementById("startaudio").hidden = true
+      document.getElementById("SUMPheader").innerText = "/**S..U..M..P**\\"
+
+      modplayer.onRow = function(pb){
+        document.getElementById("SUMPplaybackInfo").innerText = `${pb.currentPosition}:${pb.currentRow} `
         document.getElementById("SUMPDEBUG").innerHTML = modplayer.debugOutput
-        if(modplayer.currentRow == 0 || modplayer.currentPosition == modplayer.songFile.songlength){ 
-          document.getElementById("SUMPseek").value = modplayer.currentPosition 
+        if(pb.currentRow == 0 || pb.currentPosition == pb.songlength){ 
+          document.getElementById("SUMPseek").value = pb.currentPosition 
         }
 
-      }*/
-    })
+      }
+
+      window.addEventListener("keydown", (e) => { 
+        const keyTable = [
+          'KeyZ', 'KeyS', 'KeyX', 'KeyD', 'KeyC', 'KeyV', 'KeyG', 'KeyB', 'KeyH', 'KeyN', 'KeyJ', 'KeyM',
+          'KeyQ', 'Digit2', 'KeyW', 'Digit3', 'KeyE', 'KeyR', 'Digit5', 'KeyT', 'Digit6', 'KeyY', 'Digit7', 'KeyU', 
+          'KeyI', 'Digit9', 'KeyO', 'Digit0', 'KeyP', 'BracketLeft', 'Equal', 'BracketRight'
+        ];
+        if (keyTable.includes(e.code)) {
+          modplayer.testSample(SUMP.periodTable[keyTable.indexOf(e.code)+12])
+          
+        }
+      })
+
+    }
 
     
     
