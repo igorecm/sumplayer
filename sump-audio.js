@@ -307,6 +307,17 @@ class SUMPAudio extends AudioWorkletProcessor {
 				this.resetPlayback();
 				this.playback.isPlaying = true
 				break;
+			case 'pause':
+				this.resetAudio();
+				this.playback.isPlaying = false
+				this.playback.isPaused = true
+				break;
+			case 'resume':
+				if (this.playback.isPaused){
+					this.playback.isPlaying = true
+					this.playback.isPaused = false
+				}
+				break;
 			case 'stop':
 				this.resetAudio();
 				this.resetPlayback();
@@ -354,8 +365,9 @@ class SUMPAudio extends AudioWorkletProcessor {
 					}
 
 					let ps;
+					const pst = [0,1,1,0]
 
-					if(c%2==0){
+					if(pst[c] == 0){
 						ps=[this.masterPanSeparation, 1.0-this.masterPanSeparation];
 					}else{
 						ps=[1.0-this.masterPanSeparation, this.masterPanSeparation];
@@ -396,6 +408,7 @@ class SUMPAudio extends AudioWorkletProcessor {
 		if (pb.currentTick == 0){
 			this.rowPlayback()
 			this.port.postMessage({type : 'row', pb : pb})
+			//console.log(this.channels)
 		}
 
 		this.tickPlayback()
@@ -411,15 +424,32 @@ class SUMPAudio extends AudioWorkletProcessor {
 				pb.patternDelay--;
 			}
 
+			
+			/* FIX!!! BREAK TO ROW AND JUMP TO POS SIMULTANEOUSLY
+			
+			if (pb.breakToRow != -1 && pb.jumpToPosition != -1){
+				pb.currentPosition = pb.jumpToPosition;
+				pb.currentRow = pb.breakToRow;
+				console.log(pb.currentRow, pb.currentPosition)
+				pb.breakToRow = -1;	
+				pb.jumpToPosition = -1;	
+				return;
+			}*/
+
 			if (pb.patternDelay == 0){
 				pb.currentRow++;
 			}
-
+			
 			if (pb.breakToRow != -1) {
 				pb.currentPosition++;
 				pb.currentRow = pb.breakToRow;
-				pb.breakToRow = -1;	
+			}else if (pb.jumpToPosition != -1) {
+				pb.currentPosition = pb.jumpToPosition;
+				pb.currentRow = 0;
 			}
+
+			pb.breakToRow = -1;	
+			pb.jumpToPosition = -1;	
 
 			if (pb.currentRow >= 64) {
 				pb.currentRow = 0;
@@ -538,6 +568,9 @@ class SUMPAudio extends AudioWorkletProcessor {
 				case 0x9:
 					ch.position = Math.min(ch.offset + pch.note[3]*256, ch.offset + ch.length-1)
 					break;
+				case 0xB: 
+					pb.jumpToPosition = pch.note[3]
+					break;
 				case 0xC: // set volume (Cxx)
 					effectSetVolume(ch, pch);
 					break;
@@ -628,6 +661,7 @@ class SUMPAudio extends AudioWorkletProcessor {
 			if (pch.note[2] != 3 && pch.note[2] != 5) {
 				ch.period = Math.round(pch.note[0] / fineTuneTable[sinfo.finetune+8]);
 				ch.position = sinfo.offset;
+				ch.playing = true;
 			}
 			
 		}

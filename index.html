@@ -78,9 +78,9 @@
       <br>
       <div>
         volume.: <input id="SUMPvolume" type="range" min="0" max="100" value="100" onchange="modplayer.setVolume(this.value/100)"></input><br>
-        pan.sep: <input id="SUMPpansep" type="range" min="0" max="100" value="50" onchange="modplayer.setParam('masterPanSeparation', this.value/100)"></input><br>
+        pan.sep: <input id="SUMPpansep" type="range" min="50" max="100" value="50" onchange="modplayer.setParam('masterPanSeparation', this.value/100)"></input><br>
         resampling:  <input id="SUMPresample" type="checkbox" checked onchange="modplayer.setParam('masterResampling', this.checked)"></input><br>
-        visualizer:  <input id="SUMPvolume" type="checkbox"  onchange="document.getElementById('SUMPvis').hidden = !this.checked"></input><br>
+        <!-- visualizer:  <input id="SUMPvolume" type="checkbox"  onchange="document.getElementById('SUMPvis').hidden = !this.checked"></input><br> -->
       </div>
     </div>
 
